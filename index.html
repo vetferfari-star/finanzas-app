@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="theme-color" content="#5182BD">
+    <meta name="description" content="Gestiona tus finanzas personales, gastos e inversiones">
+    
+    <title>Finanzas Personales</title>
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+    
+    <!-- Librerías -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0"></script>
+    
+    <!-- Fuente -->
+    <link id="fontLink" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            --bg-body: #F6E8DD;
+            --primary: #5182BD;
+            --accent: #DC3C22;
+            --card-bg: #ffffff;
+            --text-main: #2c3e50;
+            --text-light: #718096;
+            --success: #10b981;
+            --danger: #ef4444;
+            --radius: 20px;
+            --shadow: 0 4px 15px rgba(0,0,0,0.06);
+            --nav-height: 70px;
+            --font-family: 'Montserrat', sans-serif;
+        }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        body {
+            background-color: var(--bg-body); color: var(--text-main); font-family: var(--font-family);
+            margin: 0; padding: 0; padding-bottom: calc(var(--nav-height) + 20px);
+            padding-top: env(safe-area-inset-top); font-size: 16px;
+        }
+        .container { max-width: 800px; margin: 0 auto; min-height: 100vh; padding: 20px 15px; }
+        .screen { display: none; }
+        .screen.active { display: block; }
+        header {
+            background: var(--primary); color: white; padding: 15px 20px;
+            border-bottom-left-radius: 30px; border-bottom-right-radius: 30px;
+            box-shadow: 0 4px 20px rgba(81, 130, 189, 0.3); position: sticky; top: 0; z-index: 50;
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        h1 { margin: 0; font-size: 1.2rem; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; }
+        .icon-btn { background: rgba(255,255,255,0.2); border: none; color: white; width: 40px; height: 40px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; transition: 0.3s; }
+        .icon-btn:hover { background: rgba(255,255,255,0.3); transform: scale(1.1); }
+        .card { background: var(--card-bg); padding: 20px; border-radius: var(--radius); box-shadow: var(--shadow); margin-bottom: 20px; border: 1px solid rgba(0,0,0,0.02); }
+        .section-title { font-size: 0.9rem; font-weight: 800; color: var(--primary); margin-bottom: 15px; text-transform: uppercase; border-bottom: 2px solid #f0f0f0; padding-bottom: 8px; display: flex; justify-content: space-between; align-items: center; }
+        .date-capsule {
+            background: white; border: 1px solid rgba(0,0,0,0.05); padding: 12px 20px;
+            border-radius: 30px; font-size: 1rem; font-weight: 700; color: var(--text-main);
+            cursor: pointer; display: flex; align-items: center; justify-content: flex-start; gap: 15px;
+            margin: 0 auto 20px auto; width: 100%; box-shadow: var(--shadow); transition: 0.3s;
+        }
+        .date-capsule:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(0,0,0,0.1); }
+        .date-capsule i { color: var(--primary); opacity: 0.7; }
+        .scope-tabs { display: flex; background: #f1f5f9; border-radius: 12px; padding: 4px; margin-bottom: 15px; }
+        .scope-tab { flex: 1; text-align: center; padding: 8px; border-radius: 10px; font-size: 0.75rem; font-weight: 700; cursor: pointer; color: var(--text-light); transition: 0.2s; }
+        .scope-tab.active { background: white; color: var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .block-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-top: 10px; }
+        .time-block { 
+            background: white; border: 2px solid #edf2f7; padding: 12px 5px; border-radius: 12px; 
+            text-align: center; font-weight: 700; font-size: 0.9rem; cursor: pointer; color: var(--text-light);
+            transition: 0.3s;
+        }
+        .time-block:hover { border-color: var(--primary); background: #f0f7ff; transform: scale(1.05); }
+        .time-block.active { border-color: var(--primary); background: var(--primary); color: white; }
+        .chart-container { position: relative; height: 400px; width: 100%; }
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .col-full { grid-column: span 2; }
+        label { display: block; font-size: 0.75rem; font-weight: 700; margin-bottom: 5px; color: var(--text-light); text-transform: uppercase; }
+        .f-input { width: 100%; padding: 12px 15px; border: 2px solid #edf2f7; border-radius: 12px; font-size: 1rem; outline: none; background: #fff; color: var(--text-main); font-family: inherit; transition: 0.3s; }
+        .f-input:focus { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(81, 130, 189, 0.1); }
+        .btn-main { width: 100%; padding: 15px; background: linear-gradient(135deg, var(--accent), #b82d1b); color: white; border: none; border-radius: 15px; font-weight: 700; font-size: 1rem; cursor: pointer; box-shadow: 0 4px 10px rgba(220, 60, 34, 0.3); transition: 0.3s; }
+        .btn-main:hover { transform: translateY(-2px); box-shadow: 0 6px 15px rgba(220, 60, 34, 0.4); }
+        .btn-secondary { background: white; color: var(--primary); border: 2px solid var(--primary); box-shadow: none; padding: 8px 15px; border-radius: 20px; font-size: 0.8rem; cursor: pointer; transition: 0.3s; }
+        .btn-secondary:hover { background: var(--primary); color: white; }
+        .list-container { max-height: 400px; overflow-y: auto; }
+        .list-item { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
+        .li-left { display: flex; align-items: center; gap: 12px; flex: 1; }
+        .li-icon { width: 40px; height: 40px; background: #f4f4f4; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem; }
+        .li-info { flex: 1; }
+        .li-info h4 { margin: 0; font-size: 0.9rem; font-weight: 700; color: var(--text-main); }
+        .li-info p { margin: 2px 0 0; font-size: 0.75rem; color: var(--text-light); }
+        .li-amount { font-weight: 800; font-size: 0.95rem; text-align: right; margin-right: 10px; }
+        .li-delete { color: #ccc; cursor: pointer; padding: 5px; transition: 0.3s; }
+        .li-delete:hover { color: var(--danger); transform: scale(1.2); }
+        .amt-inc { color: var(--success); } 
+        .amt-exp { color: var(--danger); }
+        .balance-row {
+            background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+            padding: 15px; border-radius: 12px; margin-top: 15px; border: 2px solid #dee2e6;
+        }
+        .balance-content { display: flex; justify-content: space-between; align-items: center; }
+        .balance-label { font-weight: 800; font-size: 1rem; color: var(--text-main); text-transform: uppercase; }
+        .balance-amount { font-weight: 800; font-size: 1.2rem; }
+        .balance-positive { color: var(--success); }
+        .balance-negative { color: var(--danger); }
+        .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); backdrop-filter: blur(4px); z-index: 2000; display: none; align-items: center; justify-content: center; padding: 20px; }
+        .modal-card { background: white; width: 100%; max-width: 450px; border-radius: 25px; padding: 25px; box-shadow: 0 20px 50px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; position: relative; }
+        .bottom-nav { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); width: 90%; max-width: 400px; height: 70px; background: rgba(255,255,255,0.95); backdrop-filter: blur(10px); display: flex; justify-content: space-around; align-items: center; box-shadow: 0 10px 40px rgba(0,0,0,0.1); border-radius: 35px; z-index: 100; border: 1px solid rgba(255,255,255,0.5); }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: #a0aec0; cursor: pointer; width: 33%; transition: 0.3s; font-size: 0.7rem; }
+        .nav-item .nav-emoji { font-size: 1.8rem; margin-bottom: 2px; }
+        .nav-item.active { color: var(--primary); transform: translateY(-3px); }
+        .nav-item:hover { color: var(--primary); }
+        .settings-row { display: flex; justify-content: space-between; align-items: center; padding: 15px 0; border-bottom: 1px solid #eee; cursor: pointer; transition: 0.2s; }
+        .settings-row:hover { background: #f9f9f9; padding-left: 10px; }
+        .currency-toggle { display: flex; gap: 5px; }
+        .currency-toggle button { padding: 6px 12px; font-size: 0.7rem; }
+        .cc-section { background: #f8f9fa; padding: 15px; border-radius: 12px; margin-top: 15px; display: none; }
+        .cc-section.active { display: block; }
+        .theme-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .theme-option { padding: 15px; border-radius: 12px; cursor: pointer; border: 2px solid #eee; text-align: center; transition: 0.3s; }
+        .theme-option:hover { border-color: var(--primary); transform: scale(1.05); }
+        .theme-option.active { border-color: var(--primary); background: var(--primary); color: white; }
+        .color-picker-row { display: flex; align-items: center; justify-content: space-between; padding: 10px 0; }
+        .color-picker-row input[type="color"] { width: 50px; height: 50px; border: none; border-radius: 10px; cursor: pointer; }
+        .font-selector { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px; }
+        .font-option { padding: 12px; border: 2px solid #eee; border-radius: 10px; cursor: pointer; text-align: center; transition: 0.3s; }
+        .font-option:hover { border-color: var(--primary); }
+        .font-option.active { border-color: var(--primary); background: var(--primary); color: white; }
+        .quick-nav { display: flex; justify-content: center; gap: 10px; margin-bottom: 15px; }
+        .quick-nav-btn {
+            padding: 8px 16px; background: white; border: 2px solid var(--primary); color: var(--primary);
+            border-radius: 20px; font-weight: 700; cursor: pointer; transition: 0.3s; font-size: 0.85rem;
+        }
+        .quick-nav-btn:hover { background: var(--primary); color: white; }
+        .install-banner {
+            position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%);
+            background: var(--primary); color: white; padding: 15px 20px; border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3); z-index: 1000; display: none;
+            align-items: center; gap: 15px; max-width: 90%;
+        }
+        .install-banner.show { display: flex; }
+        .install-banner button {
+            background: white; color: var(--primary); border: none; padding: 8px 20px;
+            border-radius: 20px; font-weight: 700; cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+    <div id="installBanner" class="install-banner">
+        <div>📱 ¿Instalar la app?</div>
+        <button onclick="installPWA()">Instalar</button>
+        <button onclick="dismissInstall()" style="background: transparent; color: white; border: 1px solid white;">✕</button>
+    </div>
+
+    <header>
+        <h1>💰 FINANZAS</h1>
+        <button class="icon-btn" onclick="openSettings()">⚙️</button>
+    </header>
+
+    <div class="container">
+        <div id="screen-home" class="screen active content-area">
+            <div class="date-capsule" onclick="openDateSelector('home')">
+                <span style="font-size:1.3rem;">📅</span>
+                <span id="homeDateDisplay">...</span>
+                <i class="fas fa-chevron-down" style="margin-left:auto; font-size:0.8rem; opacity:0.5;"></i>
+            </div>
+            <div class="quick-nav">
+                <button class="quick-nav-btn" onclick="changeMonth(-1)">⬅️ Mes Anterior</button>
+                <button class="quick-nav-btn" onclick="goToCurrentMonth()">🎯 Hoy</button>
+                <button class="quick-nav-btn" onclick="changeMonth(1)">Mes Siguiente ➡️</button>
+            </div>
+            <div class="card">
+                <div class="section-title">
+                    <span>📊 Gastos e Ingresos</span>
+                    <div class="currency-toggle">
+                        <button class="btn-secondary currency-btn" data-curr="ARS" onclick="setExpenseCurrency('ARS', this)">ARS</button>
+                        <button class="btn-secondary currency-btn" data-curr="USD" onclick="setExpenseCurrency('USD', this)">USD</button>
+                        <button class="btn-secondary currency-btn" data-curr="BRL" onclick="setExpenseCurrency('BRL', this)">BRL</button>
+                    </div>
+                </div>
+                <div class="scope-tabs">
+                    <div class="scope-tab active" onclick="setChartScope('month', this)">Mes</div>
+                    <div class="scope-tab" onclick="setChartScope('year', this)">Año</div>
+                    <div class="scope-tab" onclick="setChartScope('all', this)">Total</div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="expensesPieChart"></canvas>
+                </div>
+                <div id="noDataMsg" style="text-align:center; display:none; color:#999; padding:40px;">Sin datos para mostrar</div>
+            </div>
+            <div class="card">
+                <div class="section-title"><span>📈 Inversiones</span></div>
+                <div style="text-align:center; padding:15px; background:#f8fafc; border-radius:15px;">
+                    <div style="font-size:0.8rem; color:#888;">TOTAL ACUMULADO</div>
+                    <div style="font-size:1.8rem; font-weight:800; color:var(--primary);" id="totalInvest">0 USD</div>
+                </div>
+                <div style="height:250px; margin-top:15px;">
+                    <canvas id="investPieChart"></canvas>
+                </div>
+            </div>
+        </div>
+
+        <div id="screen-expenses" class="screen content-area">
+            <div class="card" id="expNavCard">
+                <div class="section-title"><span>📅 Seleccionar Período</span></div>
+                <div id="expDecadeGrid" class="block-grid"></div>
+                <div id="expYearGrid" class="block-grid" style="display:none;"></div>
+                <div id="expMonthGrid" class="block-grid" style="display:none;"></div>
+            </div>
+            <div id="expDashboard" style="display:none;">
+                <div class="date-capsule" onclick="resetExpNav()">
+                    <i class="fas fa-arrow-left"></i> <span style="font-size:1.3rem;">📅</span> <span id="expCurrentPeriodLabel">...</span>
+                </div>
+                <button class="btn-main" onclick="openExpenseForm()"><i class="fas fa-plus"></i> ➕ Registrar Movimiento</button>
+                <div class="card" style="margin-top:20px;">
+                    <div class="section-title">💸 Movimientos</div>
+                    <div id="expensesList" class="list-container"></div>
+                    <div id="balanceSection"></div>
+                </div>
+            </div>
+        </div>
+
+        <div id="screen-invest" class="screen content-area">
+            <div class="card" id="invNavCard">
+                <div class="section-title"><span>📅 Seleccionar Período</span></div>
+                <div id="invDecadeGrid" class="block-grid"></div>
+                <div id="invYearGrid" class="block-grid" style="display:none;"></div>
+                <div id="invMonthGrid" class="block-grid" style="display:none;"></div>
+            </div>
+            <div id="invDashboard" style="display:none;">
+                <div class="date-capsule" onclick="resetInvNav()">
+                    <i class="fas fa-arrow-left"></i> <span style="font-size:1.3rem;">📅</span> <span id="invCurrentPeriodLabel">...</span>
+                </div>
+                <div class="card" style="background:#f0f9ff; border:1px solid #bae6fd;">
+                    <div class="section-title" style="color:#0369a1; border:none;">💵 Ahorro Mensual</div>
+                    <div class="form-grid">
+                        <div><label>ARS</label><input type="number" id="invSavingsARS" class="f-input" onchange="updateSavings('ARS')"></div>
+                        <div><label>USD</label><input type="number" id="invSavingsUSD" class="f-input" onchange="updateSavings('USD')"></div>
+                    </div>
+                </div>
+                <button class="btn-main" style="background:var(--primary);" onclick="openInvestModal()"><i class="fas fa-chart-line"></i> 📊 Nueva Inversión</button>
+                <div class="card" style="margin-top:20px;">
+                    <div class="section-title">💼 Operaciones</div>
+                    <div id="investmentsList" class="list-container"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <nav class="bottom-nav">
+        <div class="nav-item active" onclick="nav('home', this)">
+            <div class="nav-emoji">🏠</div>
+            <span>Inicio</span>
+        </div>
+        <div class="nav-item" onclick="nav('expenses', this)">
+            <div class="nav-emoji">💳</div>
+            <span>Gastos</span>
+        </div>
+        <div class="nav-item" onclick="nav('invest', this)">
+            <div class="nav-emoji">🏷</div>
+            <span>Inversiones</span>
+        </div>
+    </nav>
+
+    <div id="addExpenseModal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="section-title">📝 Registrar <i class="fas fa-times" onclick="closeExpenseModal()" style="cursor:pointer;"></i></div>
+            <div class="form-grid">
+                <div class="col-full"><label>Fecha</label><input type="date" id="expDate" class="f-input"></div>
+                <div><label>Tipo</label><select id="expType" class="f-input"><option value="expense">💸 Gasto</option><option value="income">💰 Ingreso</option></select></div>
+                <div><label>Monto</label><input type="number" id="expAmount" class="f-input" placeholder="0"></div>
+                <div class="col-full">
+                    <label>Moneda</label>
+                    <select id="expCurrency" class="f-input">
+                        <option value="ARS">🇦🇷 Pesos</option>
+                        <option value="USD">🇺🇸 Dólares</option>
+                        <option value="BRL">🇧🇷 Reales</option>
+                    </select>
+                </div>
+                <div class="col-full"><label>Categoría</label><select id="expCategory" class="f-input"></select></div>
+                <div class="col-full"><label>Detalle</label><input type="text" id="expDesc" class="f-input"></div>
+                <div class="col-full">
+                    <label><input type="checkbox" id="useCreditCard" onchange="toggleCreditCard()"> 💳 Pagar con Tarjeta de Crédito</label>
+                </div>
+                <div id="creditCardSection" class="col-full cc-section">
+                    <div class="form-grid">
+                        <div><label>Tarjeta</label>
+                            <select id="ccType" class="f-input">
+                                <option value="visa">💳 Visa</option>
+                                <option value="mastercard">💳 MasterCard</option>
+                                <option value="amex">💳 American Express</option>
+                            </select>
+                        </div>
+                        <div><label>Banco/Billetera</label>
+                            <select id="ccBank" class="f-input">
+                                <option value="galicia">Galicia</option>
+                                <option value="nacion">Nación</option>
+                                <option value="santander">Santander</option>
+                                <option value="ciudad">Ciudad</option>
+                                <option value="mercadopago">Mercado Pago</option>
+                                <option value="bbva">BBVA</option>
+                                <option value="hsbc">HSBC</option>
+                            </select>
+                        </div>
+                        <div><label>Cuotas</label>
+                            <input type="number" id="ccInstallments" class="f-input" value="1" min="1" max="60">
+                        </div>
+                        <div><label>Interés (%)</label>
+                            <input type="number" id="ccInterest" class="f-input" value="0" min="0" step="0.01">
+                        </div>
+                        <div class="col-full"><label>Cierre de Tarjeta (día del mes)</label>
+                            <input type="number" id="ccClosing" class="f-input" min="1" max="31" placeholder="Ej: 22">
+                        </div>
+                    </div>
+                </div>
+                <div class="col-full"><button class="btn-main" onclick="addExpense()">💾 Guardar</button></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="addInvestModal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="section-title">📊 Operación <i class="fas fa-times" onclick="closeInvestModal()" style="cursor:pointer;"></i></div>
+            <div class="form-grid">
+                <div class="col-full"><label>Acción</label><select id="invAction" class="f-input"><option value="subscribe">✅ Suscribir</option><option value="redeem">❌ Rescatar</option></select></div>
+                <div><label>Plataforma</label><select id="invPlat" class="f-input"><option>Galicia</option><option>Santander</option><option>Balanz</option><option>Cocos</option><option>IOL</option></select></div>
+                <div><label>Tipo</label><select id="invType" class="f-input"><option>FCI</option><option>ON</option><option>CEDEAR</option><option>Accion</option><option>Crypto</option></select></div>
+                <div class="col-full"><label>Instrumento</label><input type="text" id="invInst" class="f-input" placeholder="Ej: Fima Premium"></div>
+                <div><label>Monto</label><input type="number" id="invAmt" class="f-input"></div>
+                <div><label>Moneda</label><select id="invCurr" class="f-input"><option>ARS</option><option>USD</option></select></div>
+                <div class="col-full"><button class="btn-main" onclick="saveInvestment()">💾 Guardar</button></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="dateSelectorModal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="section-title">📅 Seleccionar Fecha</div>
+            <div id="homeDecadeGrid" class="block-grid"></div>
+            <div id="homeYearGrid" class="block-grid" style="display:none;"></div>
+            <div id="homeMonthGrid" class="block-grid" style="display:none;"></div>
+            <button class="btn-secondary" style="width:100%; margin-top:15px;" onclick="closeDateSelector()">Cerrar</button>
+        </div>
+    </div>
+
+    <div id="settingsModal" class="modal-overlay">
+        <div class="modal-card">
+            <div class="section-title">⚙️ Configuración <i class="fas fa-times" onclick="closeSettings()" style="cursor:pointer;"></i></div>
+            <div class="settings-row" onclick="openThemeModal()">
+                <span>🎨 Personalizar Tema</span>
+                <i class="fas fa-chevron-right"></i>
+            </div>
+            <div class="settings-row" onclick="alert('Ideado por Fernando Fariña\nDesarrollado con ❤️\nVersión PWA 1.0')">
+                <span>ℹ️ About</span>
+                <i class="fas fa-info-circle"></i>
+            </div>
+            <button class="btn-main" style="background:var(--danger); margin-top:20px;" onclick="clearAllData()">🗑️ Borrar Todo</button>
+        </div>
+    </div>
+
+    <div id="themeModal" class="modal-overlay">
+        <div class="modal-card">
+            
